@@ -1,0 +1,72 @@
+name: bazel-diff
+description:
+  Compute impacted Bazel targets between two Git revisions using bazel-diff
+author: bamcmanus
+
+inputs:
+  base-ref:
+    description:
+      "Git ref to compare against. Auto-detected from PR event or HEAD~1 for
+      push if not specified."
+    required: false
+    default: ""
+  head-ref:
+    description: "Git ref representing the current changes."
+    required: false
+    default: "HEAD"
+  workspace-path:
+    description:
+      "Path to the directory containing the Bazel WORKSPACE or MODULE.bazel
+      file."
+    required: false
+    default: "."
+  bazel-path:
+    description: "Path to the Bazel binary."
+    required: false
+    default: "bazel"
+  bazel-diff-version:
+    description:
+      "Version of bazel-diff to download (e.g. 7.0.0). Use latest for most
+      recent release."
+    required: false
+    default: "latest"
+  target-type:
+    description:
+      "Comma-separated target types to filter (e.g. java_library,go_test)."
+    required: false
+    default: ""
+  use-cquery:
+    description: "Use cquery instead of query. Requires Bazel 6.2+."
+    required: false
+    default: "false"
+  exclude-external-targets:
+    description: "Exclude targets from external repositories."
+    required: false
+    default: "true"
+  include-distance:
+    description:
+      "Include target/package distance metrics in output (JSON format)."
+    required: false
+    default: "false"
+  bazel-startup-options:
+    description: "Additional Bazel startup options."
+    required: false
+    default: ""
+  bazel-command-options:
+    description: "Additional Bazel query command options."
+    required: false
+    default: ""
+
+outputs:
+  impacted_targets:
+    description: "Newline-separated list of impacted Bazel targets."
+  impacted_targets_file:
+    description: "Absolute path to a file containing the impacted targets."
+  has-changes:
+    description: "Whether any targets were impacted (true/false)."
+  target-count:
+    description: "Number of impacted targets."
+
+runs:
+  using: "node24"
+  main: "dist/index.js"

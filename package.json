@@ -1,0 +1,22 @@
+{
+  "name": "bazel-diff",
+  "version": "1.0.0",
+  "description": "GHA for executing tinder's bazel-diff utility",
+  "main": "index.js",
+  "scripts": {
+    "build": "ncc build src/index.js -o dist"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@actions/core": "^3.0.1",
+    "@actions/exec": "^3.0.0",
+    "@actions/io": "^3.0.2",
+    "@actions/tool-cache": "^4.0.0"
+  },
+  "devDependencies": {
+    "@vercel/ncc": "^0.38.4",
+    "jest": "^30.4.2"
+  }
+}

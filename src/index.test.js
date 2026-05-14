@@ -24,6 +24,7 @@ jest.unstable_mockModule("@actions/tool-cache", () => ({
 
 jest.unstable_mockModule("fs/promises", () => ({
   readFile: mockReadFile,
+  unlink: jest.fn().mockResolvedValue(undefined),
 }));
 
 const {

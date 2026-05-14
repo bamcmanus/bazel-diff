@@ -1,7 +1,7 @@
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
 import * as tc from "@actions/tool-cache";
-import { readFile } from "fs/promises";
+import { readFile, unlink } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
 
@@ -142,6 +142,7 @@ export function buildGetImpactedTargetArgs(
 
 export async function run() {
   let originalRef;
+  const tempFiles = [];
   try {
     core.info("bazel-diff action starting...");
 
@@ -159,6 +160,7 @@ export async function run() {
     // generate head hashes
     originalRef = await getCurrentRef();
     const headHashesPath = join(tmpdir(), "head_hashes.json");
+    tempFiles.push(headHashesPath);
     const workspacePath = core.getInput("workspace-path");
     const options = Object.freeze({
       useCquery: core.getInput("use-cquery") === "true",
@@ -171,6 +173,7 @@ export async function run() {
           ? join(tmpdir(), "dep_edges.json")
           : "",
     });
+    if (options.depEdgesFile) tempFiles.push(options.depEdgesFile);
     const headArgs = buildGenerateHashesArgs(
       jarPath,
       workspacePath,
@@ -186,6 +189,7 @@ export async function run() {
     core.info(`Checking out base ref: ${baseRef}`);
     await exec.exec("git", ["checkout", baseRef]);
     const baseHashesPath = join(tmpdir(), "base_hashes.json");
+    tempFiles.push(baseHashesPath);
     const baseArgs = buildGenerateHashesArgs(
       jarPath,
       workspacePath,
@@ -227,7 +231,18 @@ export async function run() {
     core.setFailed(error.message);
   } finally {
     if (originalRef) {
-      await exec.exec("git", ["checkout", originalRef]);
+      try {
+        await exec.exec("git", ["checkout", originalRef]);
+      } catch (error) {
+        core.warning(`failed to restore original ref: ${originalRef}`);
+      }
+    }
+    for (const file of tempFiles) {
+      try {
+        await unlink(file);
+      } catch {
+        /* ignore if already removed */
+      }
     }
   }
 }

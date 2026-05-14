@@ -33620,7 +33620,7 @@ function error(message, properties = {}) {
  * @param properties optional properties to add to the annotation.
  */
 function warning(message, properties = {}) {
-    issueCommand('warning', toCommandProperties(properties), message instanceof Error ? message.toString() : message);
+    command_issueCommand('warning', utils_toCommandProperties(properties), message instanceof Error ? message.toString() : message);
 }
 /**
  * Adds a notice issue
@@ -34669,6 +34669,7 @@ function buildGetImpactedTargetArgs(
 
 async function run() {
   let originalRef;
+  const tempFiles = [];
   try {
     info("bazel-diff action starting...");
 
@@ -34686,6 +34687,7 @@ async function run() {
     // generate head hashes
     originalRef = await getCurrentRef();
     const headHashesPath = (0,external_path_namespaceObject.join)((0,external_os_namespaceObject.tmpdir)(), "head_hashes.json");
+    tempFiles.push(headHashesPath);
     const workspacePath = getInput("workspace-path");
     const options = Object.freeze({
       useCquery: getInput("use-cquery") === "true",
@@ -34698,6 +34700,7 @@ async function run() {
           ? (0,external_path_namespaceObject.join)((0,external_os_namespaceObject.tmpdir)(), "dep_edges.json")
           : "",
     });
+    if (options.depEdgesFile) tempFiles.push(options.depEdgesFile);
     const headArgs = buildGenerateHashesArgs(
       jarPath,
       workspacePath,
@@ -34713,6 +34716,7 @@ async function run() {
     info(`Checking out base ref: ${baseRef}`);
     await exec_exec("git", ["checkout", baseRef]);
     const baseHashesPath = (0,external_path_namespaceObject.join)((0,external_os_namespaceObject.tmpdir)(), "base_hashes.json");
+    tempFiles.push(baseHashesPath);
     const baseArgs = buildGenerateHashesArgs(
       jarPath,
       workspacePath,
@@ -34754,7 +34758,18 @@ async function run() {
     setFailed(error.message);
   } finally {
     if (originalRef) {
-      await exec_exec("git", ["checkout", originalRef]);
+      try {
+        await exec_exec("git", ["checkout", originalRef]);
+      } catch (error) {
+        warning(`failed to restore original ref: ${originalRef}`);
+      }
+    }
+    for (const file of tempFiles) {
+      try {
+        await (0,promises_namespaceObject.unlink)(file);
+      } catch {
+        /* ignore if already removed */
+      }
     }
   }
 }

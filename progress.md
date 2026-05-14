@@ -79,11 +79,11 @@ workflow steps.
 
 ## Checkpoint 6: Error Handling & Cleanup
 
-- [ ] Wrap full flow in try/catch/finally
-- [ ] Restore original git ref in `finally` (even on failure)
-- [ ] Call `core.setFailed()` with actionable error messages
-- [ ] Clean up temp files on failure
-- [ ] Add debug logging (`core.debug()`) for troubleshooting
+- [x] Wrap full flow in try/catch/finally
+- [x] Restore original git ref in `finally` (even on failure)
+- [x] Call `core.setFailed()` with actionable error messages
+- [x] Clean up temp files on failure
+- [x] Add debug logging (`core.debug()`) for troubleshooting
 
 **Done when:** The action fails gracefully with clear messages and never leaves
 the workspace in a broken state.

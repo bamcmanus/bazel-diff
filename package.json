@@ -5,7 +5,8 @@
   "description": "GHA for executing tinder's bazel-diff utility",
   "main": "index.js",
   "scripts": {
-    "build": "ncc build src/index.js -o dist"
+    "build": "ncc build src/index.js -o dist",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest"
   },
   "keywords": [],
   "author": "",

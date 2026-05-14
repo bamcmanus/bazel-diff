@@ -1,6 +1,7 @@
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
 import * as tc from "@actions/tool-cache";
+import { readFile } from "fs/promises";
 
 export async function verifyJava() {
   try {
@@ -21,6 +22,33 @@ export async function downloadBazelDiff(version) {
   core.info(`Downloading bazel-diff from ${url}`);
   const jarPath = await tc.downloadTool(url);
   return jarPath;
+}
+
+export async function resolveBaseRef() {
+  let baseRef = core.getInput("base-ref");
+  if (baseRef !== "") {
+    return baseRef;
+  }
+  const eventPath = process.env.GITHUB_EVENT_PATH;
+  if (eventPath) {
+    const event = process.env.GITHUB_EVENT_NAME;
+    return parseGitHubEvent(eventPath, event);
+  }
+  return "HEAD~1";
+}
+
+export async function parseGitHubEvent(filePath, eventType) {
+  const event = JSON.parse(await readFile(filePath, "utf8"));
+  if (eventType === "pull_request") {
+    return event.pull_request.base.sha;
+  }
+  if (eventType === "push") {
+    return event.before;
+  }
+  if (eventType === "merge_group") {
+    return event.merge_group.base_sha;
+  }
+  throw new Error(`unsupported event type: ${eventType}`);
 }
 
 export async function run() {

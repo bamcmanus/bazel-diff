@@ -30764,6 +30764,8 @@ var __webpack_exports__ = {};
 // EXPORTS
 __nccwpck_require__.d(__webpack_exports__, {
   QV: () => (/* binding */ downloadBazelDiff),
+  tG: () => (/* binding */ parseGitHubEvent),
+  JN: () => (/* binding */ resolveBaseRef),
   eF: () => (/* binding */ run),
   Ax: () => (/* binding */ verifyJava)
 });
@@ -34515,7 +34517,10 @@ function _unique(values) {
     return Array.from(new Set(values));
 }
 //# sourceMappingURL=tool-cache.js.map
+;// CONCATENATED MODULE: external "fs/promises"
+const promises_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("fs/promises");
 ;// CONCATENATED MODULE: ./src/index.js
+
 
 
 
@@ -34541,6 +34546,33 @@ async function downloadBazelDiff(version) {
   return jarPath;
 }
 
+async function resolveBaseRef() {
+  let baseRef = getInput("base-ref");
+  if (baseRef !== "") {
+    return baseRef;
+  }
+  const eventPath = process.env.GITHUB_EVENT_PATH;
+  if (eventPath) {
+    const event = process.env.GITHUB_EVENT_NAME;
+    return parseGitHubEvent(eventPath, event);
+  }
+  return "HEAD~1";
+}
+
+async function parseGitHubEvent(filePath, eventType) {
+  const event = JSON.parse(await (0,promises_namespaceObject.readFile)(filePath, "utf8"));
+  if (eventType === "pull_request") {
+    return event.pull_request.base.sha;
+  }
+  if (eventType === "push") {
+    return event.before;
+  }
+  if (eventType === "merge_group") {
+    return event.merge_group.base_sha;
+  }
+  throw new Error(`unsupported event type: ${eventType}`);
+}
+
 async function run() {
   try {
     info("bazel-diff action starting...");
@@ -34557,6 +34589,8 @@ async function run() {
 run();
 
 var __webpack_exports__downloadBazelDiff = __webpack_exports__.QV;
+var __webpack_exports__parseGitHubEvent = __webpack_exports__.tG;
+var __webpack_exports__resolveBaseRef = __webpack_exports__.JN;
 var __webpack_exports__run = __webpack_exports__.eF;
 var __webpack_exports__verifyJava = __webpack_exports__.Ax;
-export { __webpack_exports__downloadBazelDiff as downloadBazelDiff, __webpack_exports__run as run, __webpack_exports__verifyJava as verifyJava };
+export { __webpack_exports__downloadBazelDiff as downloadBazelDiff, __webpack_exports__parseGitHubEvent as parseGitHubEvent, __webpack_exports__resolveBaseRef as resolveBaseRef, __webpack_exports__run as run, __webpack_exports__verifyJava as verifyJava };

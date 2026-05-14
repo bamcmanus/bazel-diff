@@ -6,6 +6,7 @@ const mockGetInput = jest.fn();
 const mockInfo = jest.fn();
 const mockSetFailed = jest.fn();
 const mockDownloadTool = jest.fn();
+const mockReadFile = jest.fn();
 
 jest.unstable_mockModule("@actions/exec", () => ({
   exec: mockExec,
@@ -21,7 +22,12 @@ jest.unstable_mockModule("@actions/tool-cache", () => ({
   downloadTool: mockDownloadTool,
 }));
 
-const { verifyJava, downloadBazelDiff } = await import("./index.js");
+jest.unstable_mockModule("fs/promises", () => ({
+  readFile: mockReadFile,
+}));
+
+const { verifyJava, downloadBazelDiff, resolveBaseRef, parseGitHubEvent } =
+  await import("./index.js");
 
 describe("verifyJava", () => {
   beforeEach(() => {
@@ -63,5 +69,76 @@ describe("downloadBazelDiff", () => {
       "https://github.com/Tinder/bazel-diff/releases/download/22.0.0/bazel-diff_deploy.jar",
     );
     expect(result).toBe("/tmp/bazel-diff.jar");
+  });
+});
+
+describe("parseGitHubEvent", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("extracts base sha from pull_request event", async () => {
+    const payload = { pull_request: { base: { sha: "abc123" } } };
+    mockReadFile.mockResolvedValue(JSON.stringify(payload));
+    const result = await parseGitHubEvent("/tmp/event.json", "pull_request");
+    expect(result).toBe("abc123");
+  });
+
+  it("extracts before sha from push event", async () => {
+    const payload = { before: "def456" };
+    mockReadFile.mockResolvedValue(JSON.stringify(payload));
+    const result = await parseGitHubEvent("/tmp/event.json", "push");
+    expect(result).toBe("def456");
+  });
+
+  it("extracts base_sha from merge_group event", async () => {
+    const payload = { merge_group: { base_sha: "ghi789" } };
+    mockReadFile.mockResolvedValue(JSON.stringify(payload));
+    const result = await parseGitHubEvent("/tmp/event.json", "merge_group");
+    expect(result).toBe("ghi789");
+  });
+
+  it("throws for unsupported event types", async () => {
+    mockReadFile.mockResolvedValue(JSON.stringify({}));
+    await expect(
+      parseGitHubEvent("/tmp/event.json", "schedule"),
+    ).rejects.toThrow(/unsupported event type: schedule/);
+  });
+});
+
+describe("resolveBaseRef", () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    process.env = { ...originalEnv };
+  });
+
+  afterAll(() => {
+    process.env = originalEnv;
+  });
+
+  it("returns base-ref input when provided", async () => {
+    mockGetInput.mockReturnValue("main");
+    const result = await resolveBaseRef();
+    expect(result).toBe("main");
+  });
+
+  it("falls back to GitHub event when no input provided", async () => {
+    mockGetInput.mockReturnValue("");
+    process.env.GITHUB_EVENT_PATH = "/tmp/event.json";
+    process.env.GITHUB_EVENT_NAME = "pull_request";
+    const payload = { pull_request: { base: { sha: "abc123" } } };
+    mockReadFile.mockResolvedValue(JSON.stringify(payload));
+    const result = await resolveBaseRef();
+    expect(result).toBe("abc123");
+  });
+
+  it("falls back to HEAD~1 when no input and no event path", async () => {
+    mockGetInput.mockReturnValue("");
+    delete process.env.GITHUB_EVENT_PATH;
+    delete process.env.GITHUB_EVENT_NAME;
+    const result = await resolveBaseRef();
+    expect(result).toBe("HEAD~1");
   });
 });

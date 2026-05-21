@@ -25,6 +25,7 @@ jobs:
           node-version: "24.x"
 
       - run: npm ci
+      - run: npm audit --audit-level=high
       - run: npm test
 
   build:
